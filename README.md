@@ -1,81 +1,188 @@
+# Mailplain
+
+Mailplain is a modern, AI-powered email client built with **Next.js 14**, featuring real-time mail processing, third-party integrations (Aurinko, Stripe, OpenAI), and a secure role-based system backed by Clerk. This document serves as comprehensive technical documentation including setup, structure, architecture, APIs, and deployment.
 
 ---
 
-# Overview
+## 🚀 Project Setup
 
-A fully featured AI-powered email client built with **Next.js 14**. This application integrates subscription-based premium access, with **Stripe** managing payments and **webhooks** used for event-driven backend processing.
+### Clone & Install
 
-# Technologies and Frameworks
+```bash
+git clone https://github.com/zdemirgithub/mailplain.git
+cd mailplain
+npm install
+cp .env.example .env
+```
 
-* **Next.js 14** – Full-stack React framework used for server-side rendering, routing, and edge deployment.
-* **React** – Frontend UI library for building reusable and interactive components.
-* **TypeScript** – Typed superset of JavaScript for enhanced code safety and developer tooling.
-* **Tailwind CSS** – Utility-first CSS framework for rapid and consistent styling.
-* **Clerk** – Authentication and user management, integrated using `@clerk/nextjs`.
-* **Prisma ORM** – Type-safe database client used for interacting with a **PostgreSQL** database.
-* **PostgreSQL** – Relational database management system.
-* **AWS SDK** – Specifically using `@aws-sdk/client-s3` for file storage and retrieval.
-* **OpenAI API** – Powers the AI features of the email client.
-* **Stripe** – Handles subscription-based billing and payment processing.
-* **Axios** – Promise-based HTTP client used for client-server communication.
-* **Pinecone** – Vector database for semantic search or AI-enhanced data operations.
-* **OpenAI Edge** – Low-latency deployment of OpenAI services at the edge.
-* **Neon** – Serverless PostgreSQL database provider, used for scalable database deployment.
-* **@tanstack/react-query** – Data fetching and state management library for React.
-* **@clerk/nextjs** – Clerk's Next.js SDK for seamless auth integration.
-* **clsx** – Utility for conditionally combining class names.
-* **tailwind-merge** – Utility to intelligently merge Tailwind CSS classes.
+### Run Locally
 
-# Installation
+```bash
+npm run dev
+```
 
-Follow the steps below to install and set up the project:
+### Environment Variables
 
-1. **Clone the repository**
+```env
+NEXT_PUBLIC_URL=http://localhost:3000
 
-   ```bash
-   git clone https://github.com/zdemirgithub/mailplain.git
-   ```
+CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
 
-2. **Navigate to the project directory**
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
 
-   ```bash
-   cd mailplain
-   ```
+AURINKO_CLIENT_ID=
+AURINKO_CLIENT_SECRET=
 
-3. **Install Node.js**
-
-   Ensure that Node.js version **13.4.19 or later** is installed. Download it from [nodejs.org](https://nodejs.org/en/download/).
-
-4. **Install the required dependencies**
-
-   ```bash
-   npm install
-   ```
-
-   This command installs all packages listed in `package.json`, including core dependencies like **Next.js**, **React**, and **Tailwind CSS**, as well as specific integrations like:
-
-   * `@aws-sdk/client-s3`
-   * `@clerk/nextjs`
-   * `@tanstack/react-query`
-   * `openai`
-   * `stripe`
-   * `axios`
-   * `pinecone-client`
-   * `clsx`
-   * `tailwind-merge`
-
-5. **Setup environment variables**
-
-   Create a `.env` file in the root of the project and populate it with necessary environment variables for services like Clerk, Stripe, OpenAI, PostgreSQL (Neon), AWS, and Pinecone.
-
-6. **Run the project**
-
-   Start the development server with:
-
-   ```bash
-   npm run dev
-   ```
-
-   The application will be available at [http://localhost:3000](http://localhost:3000).
+OPENAI_API_KEY=
+DATABASE_URL=
+```
 
 ---
+
+## 🧱 Project Structure
+
+```
+mailplain/
+├── src/
+│   ├── app/               # Next.js App Router pages
+│   ├── components/        # UI components
+│   ├── lib/               # Business logic (Aurinko, Stripe, OpenAI)
+│   ├── hooks/             # Custom React hooks
+│   ├── server/            # tRPC routers and DB access
+│   ├── styles/            # Global styles
+│   ├── trpc/              # tRPC utils (context, router)
+│   └── middleware.ts      # Clerk route protection middleware
+│
+├── prisma/                # Prisma schema + migrations
+├── public/                # Public static assets
+├── cypress/               # Cypress e2e tests
+├── .env.example           # Environment config
+└── README.md
+```
+
+---
+
+## 📐 Architecture Diagram
+
+```
+     +--------------+      +---------------+
+     |   Frontend   | <--> |  Next.js App  |
+     | (React/Tail) |      |   (API + UI)  |
+     +--------------+      +---------------+
+            |                      |
+            v                      v
+    Clerk (Auth)          tRPC Routers (Server)
+            |                      |
+            v                      v
+  Stripe <--> Webhooks <--> Business Logic (lib)
+            |                      |
+            v                      v
+         OpenAI                Aurinko (Mail API)
+            |                      |
+            v                      v
+        Role/Auth           Prisma + Neon DB
+```
+
+---
+
+## 📦 Feature Overview
+
+* **Authentication:** Clerk (JWT, RBAC)
+* **Subscriptions:** Stripe (Webhook + Limits)
+* **Mail Integration:** Aurinko API
+* **AI Summaries:** OpenAI Completion API
+* **Email Parsing:** Custom logic via `lib/aurinko.ts`
+* **File Storage:** AWS S3 (via SDK)
+* **Search Engine:** Pinecone (semantic email search)
+
+---
+
+## 📚 Technical API Reference
+
+### 🔹 tRPC API (Server Only)
+
+**Mail Router**
+
+* `listAccounts()` → List all connected email accounts
+* `sendMail({to, subject, body})` → Send new email
+* `syncMail()` → Trigger a full sync
+
+**Webhooks Router**
+
+* `getWebhooks({ accountId })` → List active webhooks
+* `createWebhook({ accountId, notificationUrl })` → Register new webhook
+* `deleteWebhook({ accountId, webhookId })` → Remove webhook
+
+**Search Router**
+
+* `search({ query })` → Semantic full-text search over mail using Pinecone
+
+### 🔹 REST Webhooks
+
+* `POST /api/stripe/webhook`
+
+  * Stripe payment and subscription webhook handler
+
+* `POST /api/aurinko/webhook`
+
+  * Handles new email events from Aurinko
+
+---
+
+## 🔎 Tests
+
+**Unit Tests:** `src/__tests__/unit`
+
+* Isolated logic: middleware, utility functions, auth
+
+**Integration Tests:** `src/__tests__/integration`
+
+* API calls, DB queries, multi-module workflows
+
+**E2E Tests:** `cypress/e2e`
+
+* Simulate user login, dashboard navigation, Stripe payment
+
+---
+
+## ☁️ Deployment (Vercel)
+
+### 1. Push to GitHub
+
+```bash
+git init
+git remote add origin https://github.com/yourname/mailplain.git
+git push -u origin main
+```
+
+### 2. Connect to Vercel
+
+* Go to [vercel.com](https://vercel.com)
+* Import project from GitHub
+* Set environment variables
+
+### 3. Configure Webhooks
+
+* **Stripe:** Dashboard → Webhooks → Add endpoint `https://yourdomain.com/api/stripe/webhook`
+* **Aurinko:** Auth during email setup triggers internal `/api/aurinko/webhook`
+
+---
+
+## 🧠 Contributors Guide
+
+* Prefer tRPC over REST for internal APIs
+* Use Clerk's `auth()` in server-only environments
+* Follow consistent error handling using `try/catch` and `zod`
+* All PRs should include unit or integration tests
+
+---
+
+## 📌 License
+
+MIT
+
+---
+
+For issues, contact [zdemirgithub](https://github.com/zdemirgithub).
