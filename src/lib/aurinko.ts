@@ -6,7 +6,7 @@ import { getSubscriptionStatus } from './stripe-actions';
 import { db } from '@/server/db';
 import { FREE_ACCOUNTS_PER_USER, PRO_ACCOUNTS_PER_USER } from '@/app/constants';
 
-export const getAurinkoAuthorizationUrl = async (serviceType: 'Google' | 'Office365' |'IMAP') => {
+export const getAurinkoAuthorizationUrl = async (serviceType: 'Google' | 'Office365') => {
     const { userId } = await auth()
     if (!userId) throw new Error('User not found')
 
