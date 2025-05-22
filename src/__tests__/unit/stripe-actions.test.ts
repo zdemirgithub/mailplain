@@ -1,37 +1,32 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
-import * as stripeActions from '@/lib/stripe-actions'
-import { auth } from '@clerk/nextjs/server'
-import { stripe } from '@/lib/stripe'
-import { db } from '@/server/db'
-import { redirect } from 'next/navigation'
+/**
+ * @jest-environment node
+ */
 
-vi.mock('@clerk/nextjs/server')
-vi.mock('@/lib/stripe')
-vi.mock('@/server/db')
-vi.mock('next/navigation')
+import * as stripeActions from '@/lib/stripe-actions';
+import { auth } from '@clerk/nextjs/server';
+import { stripe } from '@/lib/stripe';
+import { db } from '@/server/db';
+import { redirect } from 'next/navigation';
 
-describe('stripe-actions', () => {
+jest.mock('@clerk/nextjs/server');
+jest.mock('@/lib/stripe');
+jest.mock('@/server/db');
+jest.mock('next/navigation');
+
+describe('stripe-actions.ts', () => {
   beforeEach(() => {
-    vi.resetAllMocks()
-  })
+    jest.resetAllMocks();
+  });
 
   describe('createCheckoutSession', () => {
-    it('throws error if no userId', async () => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: null })
-      await expect(stripeActions.createCheckoutSession()).rejects.toThrow('User not found')
-    })
+    it('should create a checkout session and redirect', async () => {
+      (auth as jest.Mock).mockResolvedValue({ userId: 'user123' });
+      (stripe.checkout.sessions.create as jest.Mock).mockResolvedValue({
+        url: 'https://stripe.com/session-url',
+      });
+      (redirect as jest.Mock).mockImplementation(() => {});
 
-    it('creates session and redirects', async () => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user-1' })
-      const sessionUrl = 'https://checkout.session.url'
-
-      ;(stripe.checkout.sessions.create as unknown as jest.Mock).mockResolvedValue({
-        url: sessionUrl,
-      })
-
-      const redirectMock = redirect as unknown as jest.Mock
-
-      await stripeActions.createCheckoutSession()
+      await stripeActions.createCheckoutSession();
 
       expect(stripe.checkout.sessions.create).toHaveBeenCalledWith({
         payment_method_types: ['card'],
@@ -44,76 +39,89 @@ describe('stripe-actions', () => {
         mode: 'subscription',
         success_url: `${process.env.NEXT_PUBLIC_URL}/mail`,
         cancel_url: `${process.env.NEXT_PUBLIC_URL}/pricing`,
-        client_reference_id: 'user-1',
-      })
-      expect(redirectMock).toHaveBeenCalledWith(sessionUrl)
-    })
-  })
+        client_reference_id: 'user123',
+      });
+
+      expect(redirect).toHaveBeenCalledWith('https://stripe.com/session-url');
+    });
+
+    it('should throw error if no userId', async () => {
+      (auth as jest.Mock).mockResolvedValue({ userId: null });
+
+      await expect(stripeActions.createCheckoutSession()).rejects.toThrow('User not found');
+    });
+  });
 
   describe('createBillingPortalSession', () => {
-    it('returns false if no userId', async () => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: null })
-      const result = await stripeActions.createBillingPortalSession()
-      expect(result).toBe(false)
-    })
+    it('should create billing portal session and redirect', async () => {
+      (auth as jest.Mock).mockResolvedValue({ userId: 'user123' });
+      (db.stripeSubscription.findUnique as jest.Mock).mockResolvedValue({
+        customerId: 'cus_123',
+      });
+      (stripe.billingPortal.sessions.create as jest.Mock).mockResolvedValue({
+        url: 'https://stripe.com/billing-portal',
+      });
+      (redirect as jest.Mock).mockImplementation(() => {});
 
-    it('throws error if no subscription or customerId', async () => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user-1' })
-      (db.stripeSubscription.findUnique as unknown as jest.Mock).mockResolvedValue(null)
-      await expect(stripeActions.createBillingPortalSession()).rejects.toThrow('Subscription not found')
+      await stripeActions.createBillingPortalSession();
 
-      (db.stripeSubscription.findUnique as unknown as jest.Mock).mockResolvedValue({ customerId: null })
-      await expect(stripeActions.createBillingPortalSession()).rejects.toThrow('Subscription not found')
-    })
-
-    it('creates billing portal session and redirects', async () => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user-1' })
-      (db.stripeSubscription.findUnique as unknown as jest.Mock).mockResolvedValue({ customerId: 'cus_123' })
-      const sessionUrl = 'https://billing.portal.url'
-      (stripe.billingPortal.sessions.create as unknown as jest.Mock).mockResolvedValue({ url: sessionUrl })
-
-      const redirectMock = redirect as unknown as jest.Mock
-
-      await stripeActions.createBillingPortalSession()
-
+      expect(db.stripeSubscription.findUnique).toHaveBeenCalledWith({ where: { userId: 'user123' } });
       expect(stripe.billingPortal.sessions.create).toHaveBeenCalledWith({
         customer: 'cus_123',
         return_url: `${process.env.NEXT_PUBLIC_URL}/pricing`,
-      })
-      expect(redirectMock).toHaveBeenCalledWith(sessionUrl)
-    })
-  })
+      });
+      expect(redirect).toHaveBeenCalledWith('https://stripe.com/billing-portal');
+    });
+
+    it('should return false if no userId', async () => {
+      (auth as jest.Mock).mockResolvedValue({ userId: null });
+
+      const result = await stripeActions.createBillingPortalSession();
+      expect(result).toBe(false);
+    });
+
+    it('should throw error if subscription missing customerId', async () => {
+      (auth as jest.Mock).mockResolvedValue({ userId: 'user123' });
+      (db.stripeSubscription.findUnique as jest.Mock).mockResolvedValue({ customerId: null });
+
+      await expect(stripeActions.createBillingPortalSession()).rejects.toThrow('Subscription not found');
+    });
+  });
 
   describe('getSubscriptionStatus', () => {
-    it('returns false if no userId', async () => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: null })
-      const result = await stripeActions.getSubscriptionStatus()
-      expect(result).toBe(false)
-    })
+    it('should return true if subscription is active', async () => {
+      (auth as jest.Mock).mockResolvedValue({ userId: 'user123' });
+      (db.stripeSubscription.findUnique as jest.Mock).mockResolvedValue({
+        currentPeriodEnd: new Date(Date.now() + 100000), // future date
+      });
 
-    it('returns false if no subscription found', async () => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user-1' })
-      (db.stripeSubscription.findUnique as unknown as jest.Mock).mockResolvedValue(null)
-      const result = await stripeActions.getSubscriptionStatus()
-      expect(result).toBe(false)
-    })
+      const result = await stripeActions.getSubscriptionStatus();
+      expect(result).toBe(true);
+    });
 
-    it('returns true if currentPeriodEnd is in the future', async () => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user-1' })
-      (db.stripeSubscription.findUnique as unknown as jest.Mock).mockResolvedValue({
-        currentPeriodEnd: new Date(Date.now() + 100000), // future
-      })
-      const result = await stripeActions.getSubscriptionStatus()
-      expect(result).toBe(true)
-    })
+    it('should return false if no userId', async () => {
+      (auth as jest.Mock).mockResolvedValue({ userId: null });
 
-    it('returns false if currentPeriodEnd is in the past', async () => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user-1' })
-      (db.stripeSubscription.findUnique as unknown as jest.Mock).mockResolvedValue({
-        currentPeriodEnd: new Date(Date.now() - 100000), // past
-      })
-      const result = await stripeActions.getSubscriptionStatus()
-      expect(result).toBe(false)
-    })
-  })
-})
+      const result = await stripeActions.getSubscriptionStatus();
+      expect(result).toBe(false);
+    });
+
+    it('should return false if no subscription', async () => {
+      (auth as jest.Mock).mockResolvedValue({ userId: 'user123' });
+      (db.stripeSubscription.findUnique as jest.Mock).mockResolvedValue(null);
+
+      const result = await stripeActions.getSubscriptionStatus();
+      expect(result).toBe(false);
+    });
+
+    it('should return false if subscription expired', async () => {
+      (auth as jest.Mock).mockResolvedValue({ userId: 'user123' });
+      (db.stripeSubscription.findUnique as jest.Mock).mockResolvedValue({
+        currentPeriodEnd: new Date(Date.now() - 100000), // past date
+      });
+
+      const result = await stripeActions.getSubscriptionStatus();
+      expect(result).toBe(false);
+    });
+  });
+});
