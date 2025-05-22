@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './src/tests/e2e',    // path to your e2e tests folder
+  testDir: './src/__tests__/e2e',    // path to your e2e tests folder
   timeout: 30 * 1000,            // max time per test in ms (30 seconds)
   retries: 1,                   // retry once on failure (can adjust)
   reporter: 'html',             // generates a nice HTML report

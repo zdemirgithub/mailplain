@@ -28,7 +28,7 @@ All procedures are wrapped in `protectedProcedure` and require Clerk-authenticat
 Each router is covered by:
 
 * **Integration tests**: `src/__tests__/integration/routers.test.ts`
-* **E2E tests**: Cypress tests simulate interactions
+* **E2E tests**: Playwright tests simulate interactions
 
 ## 🔗 Usage (Client)
 

@@ -57,7 +57,6 @@ mailplain/
 │
 ├── prisma/                # Prisma schema + migrations
 ├── public/                # Public static assets
-├── cypress/               # Cypress e2e tests
 ├── .env.example           # Environment config
 └── README.md
 ```
@@ -141,7 +140,7 @@ mailplain/
 
 * API calls, DB queries, multi-module workflows
 
-**E2E Tests:** `cypress/e2e`
+**E2E Tests:** `__tests__/e2e`
 
 * Simulate user login, dashboard navigation, Stripe payment
 
