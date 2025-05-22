@@ -94,8 +94,8 @@ mailplain/
 * **Mail Integration:** Aurinko API
 * **AI Summaries:** OpenAI Completion API
 * **Email Parsing:** Custom logic via `lib/aurinko.ts`
-* **File Storage:** AWS S3 (via SDK)
-* **Search Engine:** Pinecone (semantic email search)
+* **Database Management:** NeonDB, PostgreSQL, Prisma
+* **Search Engine:** Orama (semantic email search)
 
 ---
 

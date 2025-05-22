@@ -30,9 +30,6 @@ This project is a fully featured AI-powered email client built using **Next.js 1
 * **PostgreSQL (Neon)**
   Relational database managed via Neon, a serverless PostgreSQL provider for scalable deployments.
 
-* **AWS SDK (@aws-sdk/client-s3)**
-  Used for file storage and retrieval on Amazon S3.
-
 * **OpenAI API & OpenAI Edge**
   Provides AI features with low-latency edge deployments.
 
@@ -42,7 +39,7 @@ This project is a fully featured AI-powered email client built using **Next.js 1
 * **Axios**
   Promise-based HTTP client for server and third-party API communication.
 
-* **Pinecone**
+* **Orama**
   Vector database used for semantic search and AI-enhanced data queries.
 
 * **@tanstack/react-query**
@@ -80,7 +77,7 @@ This installs all dependencies declared in `package.json`, including:
 
 * Core framework: Next.js, React, React DOM
 * Styling: Tailwind CSS
-* API clients: Axios, Stripe, OpenAI, Pinecone
+* API clients: Axios, Stripe, OpenAI, Orama
 * Auth: @clerk/nextjs
 * Database: Prisma, Neon PostgreSQL
 * Utility libraries: clsx, tailwind-merge
@@ -93,8 +90,7 @@ Create a `.env` file in the project root. Add required environment variables for
 * Stripe (payments & webhooks)
 * OpenAI (AI services)
 * PostgreSQL (Neon connection string)
-* AWS (S3 credentials)
-* Pinecone (vector database API key)
+* Orama (vector database API key)
 
 Example `.env` entries:
 
@@ -104,9 +100,6 @@ CLERK_API_KEY=...
 STRIPE_SECRET_KEY=...
 OPENAI_API_KEY=...
 DATABASE_URL=...
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-PINECONE_API_KEY=...
 ```
 
 ### 6. Run the development server
