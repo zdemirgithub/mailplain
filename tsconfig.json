@@ -26,7 +26,10 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@clerk/nextjs": ["src/__tests__/__mocks__/@clerk/nextjs.ts"],
+      "@aurinko/client": ["src/__tests__/__mocks__/@aurinko/client.ts"],
+      "@/lib/stripe-actions": ["src/__tests__/__mocks__/@/lib/stripe-actions.ts"]
     }
   },
   "include": [
